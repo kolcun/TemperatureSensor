@@ -32,7 +32,7 @@ DallasTemperature sensors(&oneWire);
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH); con
+  digitalWrite(LED_BUILTIN, HIGH); 
   pinMode(ONE_WIRE_BUS, INPUT);
 
   setupOTA();
