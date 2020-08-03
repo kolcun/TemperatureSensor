@@ -6,6 +6,7 @@
 #include <DallasTemperature.h>
 #include <ArduinoJson.h>
 #include "credentials.h"
+#include <AsyncDelay.h>
 
 #define ONE_WIRE_BUS D2
 #define HOSTNAME "PoolTemperature"
@@ -28,23 +29,29 @@ PubSubClient pubSubClient(wifiClient);
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
+AsyncDelay delay60s;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH); 
-  pinMode(ONE_WIRE_BUS, INPUT);
 
   setupOTA();
   sensors.begin();
   Serial.println(clientId);
 
   pubSubClient.setServer(server, 1883);
-  //pubSubClient.setCallback(mqttCallback);
 
   if (!pubSubClient.connected()) {
     reconnect();
   }
+  setupTemperature();
+}
+
+void setupTemperature() {
+  pinMode(ONE_WIRE_BUS, INPUT);
+  delay60s.start(60000, AsyncDelay::MILLIS);
+  //first time seems to be slightly off
+  sensors.requestTemperatures();
+  readTemperature();
 }
 
 void reconnect() {
@@ -68,11 +75,8 @@ void reconnect() {
   }
 
 }
-void loop() {
-  ArduinoOTA.handle();
-  if (!pubSubClient.connected()) {
-    reconnect();
-  }
+
+void readTemperature() {
   // call sensors.requestTemperatures() to issue a global temperature
   // request to all devices on the bus
   Serial.print(" Requesting temperatures...");
@@ -85,20 +89,6 @@ void loop() {
   Serial.print("Temperature C is: ");
   Serial.println(currentTempF);
 
-  //    String tempC;
-  //    tempC += currentTempC;
-  //    String tempF;
-  //    tempF += currentTempF;
-  //    pubSubClient.publish(stateTopicC, (char *) tempC.c_str());
-  //    pubSubClient.publish(stateTopicF, (char *) tempF.c_str());
-  //    String tempJson;
-  //    tempJson += "{ \"temperature\": { \"C\": \"";
-  //    tempJson += currentTempC;
-  //    tempJson += "\", \"F\": \"";
-  //    tempJson += currentTempF;
-  //    tempJson += "\" } }";
-  //    pubSubClient.publish("kolcun/outdoor/pool/temperature/state2", (uint8_t*) tempJson.c_str(), tempJson.length(), true);
-
   const int capacity = JSON_OBJECT_SIZE(3);
   StaticJsonDocument<capacity> doc;
   doc["temperature"]["C"] = currentTempC;
@@ -107,9 +97,18 @@ void loop() {
   String output;
   serializeJson(doc, output);
   pubSubClient.publish(stateTopic, (uint8_t*) output.c_str(), output.length(), true);
+}
 
-  blinkLed();
-  delay(10000);
+void loop() {
+  ArduinoOTA.handle();
+  if (!pubSubClient.connected()) {
+    reconnect();
+  }
+
+  if (delay60s.isExpired()) {
+    readTemperature();
+    delay60s.repeat();
+  }
 
   pubSubClient.loop();
 }
@@ -159,20 +158,4 @@ void setupOTA() {
   Serial.println("OTA Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-}
-
-void blinkLed() {
-  turnOnLed();
-  delay(100);
-  turnOffLed();
-}
-
-void turnOnLed() {
-  Serial.println("led on");
-  digitalWrite(LED_BUILTIN, LOW);
-}
-
-void turnOffLed() {
-  Serial.println("led off");
-  digitalWrite(LED_BUILTIN, HIGH);
 }
