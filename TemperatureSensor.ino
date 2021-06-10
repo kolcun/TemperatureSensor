@@ -25,7 +25,7 @@ char address[4];
 char clientId[25] = "temperature-pool";
 
 WiFiClient wifiClient;
-PubSubClient pubSubClient(wifiClient);
+PubSubClient pubSubClient(server, 1883, {}, wifiClient);
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
@@ -37,8 +37,6 @@ void setup() {
   setupOTA();
   sensors.begin();
   Serial.println(clientId);
-
-  pubSubClient.setServer(server, 1883);
 
   if (!pubSubClient.connected()) {
     reconnect();
@@ -56,7 +54,7 @@ void setupTemperature() {
 
 void reconnect() {
   while (!pubSubClient.connected()) {
-    if (pubSubClient.connect(clientId, MQTT_USER, MQTT_PASSWD)) {
+    if (pubSubClient.connect(clientId, MQTT_USER, MQTT_PASSWD, stateTopic, 0, true, "{\"temperature\":{\"C\":0.0,\"F\":0.0}}")) {
       Serial.println("Connected to MQTT broker");
       pubSubClient.publish(overwatchTopic, onlineMessage);
       //      Serial.print("sub to: '");
