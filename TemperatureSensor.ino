@@ -14,10 +14,9 @@
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWD;
 
-char* overwatchTopic = "kolcun/outdoor/pool/temperature/overwatch";
-char* stateTopic = "kolcun/outdoor/pool/temperature/state";
+const char* overwatchTopic = "kolcun/outdoor/pool/temperature/overwatch";
+const char* stateTopic = "kolcun/outdoor/pool/temperature/state";
 char onlineMessage[50] = "Temperature Sensor Online";
-char* server = MQTT_SERVER;
 char* mqttMessage;
 int controllerId;
 boolean ledEnabled = true;
@@ -25,7 +24,7 @@ char address[4];
 char clientId[25] = "temperature-pool";
 
 WiFiClient wifiClient;
-PubSubClient pubSubClient(server, 1883, {}, wifiClient);
+PubSubClient pubSubClient(MQTT_SERVER, 1883, {}, wifiClient);
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
